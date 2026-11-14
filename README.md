@@ -10,6 +10,14 @@ The current development build includes Klondike with draw one or three, local ga
 
 This is an evolving recreation, not a finished or verified reproduction of every original Windows behavior. Physical-device testing, scoring parity, animation and audio fidelity, accessibility, and polish remain ongoing. The screenshots below are user-provided photographs of development builds; controls and layout may have changed since they were taken.
 
+## Downloads and development status
+
+- **Public iOS prerelease:** 0.6.14 (build 21). The unsigned IPA linked below is still the public download.
+- **Newer iPad development build:** 0.6.16 (build 23) was verified as installed. On-device drag and drop has not been tested.
+- **Newer macOS development build:** 0.6.18 (build 27) was packaged and its archive checksum verified. This checks package integrity, not launch or gameplay.
+
+The newer development builds are not distributed through this repository's Releases page.
+
 ## Screenshots
 
 | Duo inner display — portrait | Duo inner display — landscape |
