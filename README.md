@@ -12,7 +12,7 @@ This is an evolving recreation, not a finished or verified reproduction of every
 
 ## Downloads and development status
 
-The current iOS prerelease is **0.6.16 (build 23)**, available as an unsigned IPA on the [release page](https://github.com/wireproof/ClassicSolitaire/releases/tag/v0.6.16). The package needs signing and provisioning before installation. The app uses the bundle identifier `com.wireproof.solitaire` and the Home Screen name Solitaire.
+The current iOS prerelease is **0.6.17 (build 25)**, available as an unsigned IPA on the [release page](https://github.com/wireproof/ClassicSolitaire/releases/tag/v0.6.17). The package needs signing and provisioning before installation. The app uses the bundle identifier `com.wireproof.solitaire` and the Home Screen name Solitaire.
 
 This build includes tap-to-move and experimental drag-and-drop. It has been installed on the iPhone Duo and iPad Pro; physical-device gameplay and drag interactions have not been verified for this release. A newer macOS development build has been packaged but is not included in this iOS release.
 

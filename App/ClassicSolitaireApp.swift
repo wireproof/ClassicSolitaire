@@ -260,7 +260,10 @@ struct GameView: View {
                     Button { session.draw() } label: { cardFace(session.game.stock.last, width: width, height: height, placeholder: "↻") }
                         .buttonStyle(.plain).accessibilityLabel(session.game.stock.isEmpty ? "Recycle waste" : "Draw cards")
                     pileView(.waste, width: width, height: height)
-                    Spacer(minLength: 0)
+                    // Keep the top row on the same seven-column grid as the tableau.
+                    // A flexible spacer pushes the foundations away from the tableau
+                    // whenever the board is wider than the maximum card size.
+                    Color.clear.frame(width: width, height: height).accessibilityHidden(true)
                     ForEach(0..<4) { pileView(.foundation($0), width: width, height: height) }
                 }
                 HStack(alignment: .top, spacing: 3) {
