@@ -248,9 +248,18 @@ struct GameView: View {
         GeometryReader { area in
             if vistaAppearance {
                 asset(vistaBackground, ext: "JPG", subdirectory: "Backgrounds")
-                    .resizable().scaledToFill().frame(width: area.size.width, height: area.size.height + 120, alignment: .top).clipped()
+                    .resizable()
+                    .scaledToFill()
+                    .frame(
+                        width: area.size.width + area.safeAreaInsets.leading + area.safeAreaInsets.trailing + 240,
+                        height: area.size.height + area.safeAreaInsets.top + area.safeAreaInsets.bottom + 240
+                    )
+                    .clipped()
+                    .offset(x: -area.safeAreaInsets.leading - 120, y: -area.safeAreaInsets.top - 120)
             } else { Color(red: 0, green: 0.42, blue: 0.25) }
-        }.ignoresSafeArea()
+        }
+        .ignoresSafeArea(.all)
+        .allowsHitTesting(false)
     }
     @ViewBuilder
     func gameBoard(width: CGFloat, height: CGFloat, step: CGFloat, showReadout: Bool) -> some View {
