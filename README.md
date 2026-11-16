@@ -12,11 +12,9 @@ This is an evolving recreation, not a finished or verified reproduction of every
 
 ## Downloads and development status
 
-- **Public iOS prerelease:** 0.6.14 (build 21). The unsigned IPA linked below is still the public download.
-- **Newer iPad development build:** 0.6.16 (build 23) was verified as installed. On-device drag and drop has not been tested.
-- **Newer macOS development build:** 0.6.18 (build 27) was packaged and its archive checksum verified. This checks package integrity, not launch or gameplay.
+The current iOS prerelease is **0.6.16 (build 23)**, available as an unsigned IPA on the [release page](https://github.com/wireproof/ClassicSolitaire/releases/tag/v0.6.16). The package needs signing and provisioning before installation. The app uses the bundle identifier `com.wireproof.solitaire` and the Home Screen name Solitaire.
 
-The newer development builds are not distributed through this repository's Releases page.
+This build includes tap-to-move and experimental drag-and-drop. It has been installed on the iPhone Duo and iPad Pro; physical-device gameplay and drag interactions have not been verified for this release. A newer macOS development build has been packaged but is not included in this iOS release.
 
 ## Screenshots
 
@@ -34,8 +32,6 @@ The newer development builds are not distributed through this repository's Relea
 - `Tests/SolitaireEngineTests/` contains engine tests; run them with `swift test`.
 - `App/ClassicSolitaireApp.swift` contains the SwiftUI application and visual effects.
 
-The engine is a Swift package. The current iOS app is built with the Apple SDK and requires appropriate code signing and separately supplied resources. A complete Xcode project and turnkey app build are not yet included.
+The engine is a Swift package. The SwiftUI app source and its image and audio resources are included in `App/`. A complete Xcode project and turnkey app build are not yet included.
 
-## Artwork and rights
-
-This is an independent fan project and is not affiliated with or endorsed by Microsoft or Apple. Windows names and imagery belong to their respective owners. Original Windows executables, extracted game artwork and audio, derived assets, provisioning profiles, and device-signed builds are **not included in the source repository**. An [unsigned development IPA](https://github.com/wireproof/ClassicSolitaire/releases/tag/v0.6.14) is available separately and contains game artwork; it requires your own signing and provisioning. The source expects resources that are not provided here, so cloning this repository alone does not reproduce the full appearance shown in the screenshots. Screenshots are provided as project documentation, not as a license to reuse their contents.
+This is an independent fan project and is not affiliated with or endorsed by Microsoft or Apple. Windows names and imagery belong to their respective owners.

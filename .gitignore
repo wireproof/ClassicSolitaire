@@ -4,6 +4,5 @@ build/
 releases/
 research/
 /screenshots/
-App/Resources/
 *.mobileprovision
 *.ipa

@@ -10,6 +10,11 @@ import AppKit
 
 @main struct ClassicSolitaireApp: App { var body: some Scene { WindowGroup { GameView() } } }
 struct Selection: Equatable { let pile: Pile; let index: Int }
+struct PileFrame: Equatable { let pile: Pile; let rect: CGRect }
+struct PileFrameKey: PreferenceKey {
+    static var defaultValue: [PileFrame] = []
+    static func reduce(value: inout [PileFrame], nextValue: () -> [PileFrame]) { value.append(contentsOf: nextValue()) }
+}
 struct Snapshot: Codable { var game: Game; var score: Int; var seconds: Int }
 struct SavedSession: Codable { var current: Snapshot; var undo: [Snapshot] }
 
@@ -113,6 +118,9 @@ struct GameView: View {
     @State private var widePortrait = false
     @State private var hingeOpen = false
     @State private var controlsExpanded = false
+    @State private var dragSelection: Selection?
+    @State private var dragOffset: CGSize = .zero
+    @State private var pileFrames: [PileFrame] = []
     @State private var confirmNew = false
     @State private var previewVictory = false
     @State private var dismissedVictory = false
@@ -144,7 +152,7 @@ struct GameView: View {
                 gameBoard(width: cardWidth, height: cardHeight, step: step, showReadout: !useNativeControls && !landscape)
                     .frame(width: boardWidth, height: geometry.size.height - 16, alignment: .topLeading)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                if landscape && !coverSide {
+                if landscape && !useNativeControls {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Score: \(session.score)")
                         Text(String(format: "Time: %d:%02d", session.seconds / 60, session.seconds % 60))
@@ -157,16 +165,6 @@ struct GameView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(.trailing, 10)
                     .padding(.bottom, max(12, geometry.safeAreaInsets.bottom))
-                }
-                if nativeSidebar {
-                    VStack(spacing: 5) {
-                        sidebarReadout("SCORE", value: "\(session.score)")
-                        sidebarReadout("TIME", value: String(format: "%d:%02d", session.seconds / 60, session.seconds % 60))
-                    }
-                    .allowsHitTesting(false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: nativeBarLeading ? .bottomLeading : .bottomTrailing)
-                    .offset(x: nativeBarLeading ? -max(0, geometry.safeAreaInsets.leading - 48) : max(0, geometry.safeAreaInsets.trailing - 48))
-                    .padding(.bottom, max(16, geometry.safeAreaInsets.bottom))
                 }
                 if !useNativeControls {
                     floatingControls
@@ -203,13 +201,13 @@ struct GameView: View {
                     Button { controlsExpanded = false; showSettings = true } label: { Label("Game options", systemImage: "gearshape") }
                 }
             }
-            if #available(iOS 27.1, *), widePortrait && !nativeSidebar {
+            if #available(iOS 27.1, *) {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     readoutCircle("SCORE", value: "\(session.score)")
-                }.axisBehavior(.verticalPreferred).visibilityPriority(.high)
+                }.axisBehavior(.verticalPreferred)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     readoutCircle("TIME", value: String(format: "%d:%02d", session.seconds / 60, session.seconds % 60))
-                }.axisBehavior(.verticalPreferred).visibilityPriority(.high)
+                }.axisBehavior(.verticalPreferred)
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -235,17 +233,6 @@ struct GameView: View {
         .onChange(of: session.game.won) { won in if !won { dismissedVictory = false } else { SoundEffects.shared.play("SHARED_CARDFALLING") } }
         .onReceive(timer) { _ in if scenePhase == .active && !showSettings && !confirmNew { session.tick() } }
         .onChange(of: scenePhase) { phase in if phase != .active { session.save() } }
-    }
-    private func sidebarReadout(_ label: String, value: String) -> some View {
-        VStack(spacing: 1) {
-            Text(label).font(.system(size: 8, weight: .bold))
-            Text(value).font(.system(size: 11, weight: .semibold).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.65)
-        }
-        .foregroundStyle(.white)
-        .frame(width: 42, height: 42)
-        .background(Color.black.opacity(0.48), in: Circle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(value)")
     }
     private func readoutCircle(_ label: String, value: String) -> some View {
         VStack(spacing: 1) {
@@ -283,9 +270,15 @@ struct GameView: View {
                             Button { session.choose(pile, index: nil) } label: { cardFace(nil, width: width, height: height, placeholder: "K") }.buttonStyle(.plain)
                             ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                                 Button { session.choose(pile, index: index) } label: { cardFace(card, width: width, height: height, selected: session.selection == Selection(pile: pile, index: index)) }
-                                    .buttonStyle(.plain).offset(y: CGFloat(index) * step)
+                                    .buttonStyle(.plain)
+                                    .offset(x: isDragging(pile, index: index) ? dragOffset.width : 0,
+                                            y: CGFloat(index) * step + (isDragging(pile, index: index) ? dragOffset.height : 0))
+                                    .zIndex(isDragging(pile, index: index) ? Double(index + 1000) : Double(index))
+                                    .simultaneousGesture(cardDrag(pile, index: index, enabled: card.faceUp))
                             }
                         }.frame(width: width, height: height + CGFloat(max(0, cards.count - 1)) * step, alignment: .top)
+                            .background(pileFrame(pile))
+                            .zIndex(dragSelection?.pile == pile ? 100 : 0)
                     }
                 }
                 if showReadout {
@@ -294,7 +287,40 @@ struct GameView: View {
                 }
                 if !session.hintText.isEmpty { Text(session.hintText).font(.caption).foregroundStyle(.white).padding(.top, 5) }
             }.frame(maxWidth: .infinity, alignment: .leading)
-        }.scrollIndicators(.visible)
+        }.coordinateSpace(name: "solitaireBoard")
+            .onPreferenceChange(PileFrameKey.self) { pileFrames = $0 }
+            .scrollIndicators(.visible)
+    }
+    private func pileFrame(_ pile: Pile) -> some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: PileFrameKey.self, value: [PileFrame(pile: pile, rect: proxy.frame(in: .named("solitaireBoard")))])
+        }
+    }
+    private func isDragging(_ pile: Pile, index: Int) -> Bool {
+        guard let selected = dragSelection else { return false }
+        return selected.pile == pile && index >= selected.index
+    }
+    private func cardDrag(_ pile: Pile, index: Int, enabled: Bool) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named("solitaireBoard"))
+            .onChanged { value in
+                guard enabled else { return }
+                if dragSelection == nil { dragSelection = Selection(pile: pile, index: index) }
+                guard dragSelection == Selection(pile: pile, index: index) else { return }
+                dragOffset = value.translation
+            }
+            .onEnded { value in
+                guard dragSelection == Selection(pile: pile, index: index) else { return }
+                let target = pileFrames.first { frame in
+                    guard frame.pile != pile else { return false }
+                    if case .waste = frame.pile { return false }
+                    return frame.rect.insetBy(dx: -4, dy: -4).contains(value.location)
+                }?.pile
+                dragSelection = nil; dragOffset = .zero
+                if let target {
+                    session.selection = Selection(pile: pile, index: index)
+                    session.choose(target, index: nil)
+                }
+            }
     }
     private var floatingControls: some View {
         HStack(spacing: 6) {
@@ -342,7 +368,13 @@ struct GameView: View {
     }
     func pileView(_ pile: Pile, width: CGFloat, height: CGFloat) -> some View {
         let cards = session.game.cards(in: pile)
-        return Button { session.choose(pile, index: cards.indices.last) } label: { cardFace(cards.last, width: width, height: height, selected: session.selection?.pile == pile, placeholder: "A") }.buttonStyle(.plain)
+        return Button { session.choose(pile, index: cards.indices.last) } label: { cardFace(cards.last, width: width, height: height, selected: session.selection?.pile == pile, placeholder: "A") }
+            .buttonStyle(.plain)
+            .offset(x: isDragging(pile, index: cards.indices.last ?? 0) ? dragOffset.width : 0,
+                    y: isDragging(pile, index: cards.indices.last ?? 0) ? dragOffset.height : 0)
+            .simultaneousGesture(cardDrag(pile, index: cards.indices.last ?? 0, enabled: cards.last?.faceUp == true))
+            .background(pileFrame(pile))
+            .zIndex(dragSelection?.pile == pile ? 100 : 0)
     }
     func asset(_ name: String, ext: String = "png", subdirectory: String? = nil) -> Image {
         let path = Bundle.main.path(forResource: name, ofType: ext, inDirectory: subdirectory)
