@@ -143,7 +143,7 @@ struct GameView: View {
             let boardWidth = max(140, geometry.size.width - 16)
             let widthBasedCard = max(16, (boardWidth - 18) / 7)
             let heightBasedCard = max(24, (geometry.size.height - 72) / (2 * 96 / 71 + 0.85))
-            let cardWidth = min(110, widthBasedCard, landscape ? heightBasedCard : 110)
+            let cardWidth = landscape ? min(widthBasedCard, heightBasedCard) : widthBasedCard
             let cardHeight = cardWidth * 96 / 71
             let maxCards = session.game.tableau.map(\.count).max() ?? 1
             let stackSpace = max(0, geometry.size.height - cardHeight * 2 - (useNativeControls ? 30 : 70))
